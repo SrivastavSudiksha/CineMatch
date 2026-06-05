@@ -1,7 +1,8 @@
+import os
 from pymongo import MongoClient
 
-client = MongoClient("mongodb://localhost:27017/")
+MONGO_URL = os.getenv("MONGO_URL", "mongodb://localhost:27017/")
+client = MongoClient(MONGO_URL)
 db = client["cinematch"]
-
 movies_col = db["movies"]
 users_col = db["users"]
