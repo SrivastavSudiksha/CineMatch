@@ -1,0 +1,9 @@
+node_modules/
+data/
+dist/
+.DS_Store
+src/.DS_Store
+*.csv
+__pycache__/
+*.pyc
+.env
