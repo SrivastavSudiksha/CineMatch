@@ -4,7 +4,7 @@ const PROFILES = [
   { id: '3', name: 'Kids', gradient: 'gradient-3', avatar: '🧸', isKids: true },
   { id: 'add', name: 'Add Profile', gradient: 'gradient-add', avatar: '+', isAdd: true },
 ];
-
+const API = 'https://cinematch-production.up.railway.app';
 const GENRES = ['Sci-Fi','Thriller','Mystery','Crime','Drama','Comedy','Fantasy','Anime','Action','Romance','Documentary','Horror'];
 
 const ACTOR_SUGGESTIONS = ['Shah Rukh Khan','Pedro Pascal','Tom Holland','Ryan Gosling','Leonardo DiCaprio','Deepika Padukone','Alia Bhatt','Zendaya','Cillian Murphy','Florence Pugh'];
