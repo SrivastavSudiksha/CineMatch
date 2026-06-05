@@ -119,7 +119,6 @@ const NAV_ICONS = {
   analytics: icons.barChart, settings: icons.settings,
 };
 
-const API = 'http://localhost:8000';
 
 const state = {
   
