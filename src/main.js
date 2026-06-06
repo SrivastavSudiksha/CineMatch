@@ -371,10 +371,26 @@ function renderLogin() {
     `${inputHTML('login-email','email','you@example.com','Email')}
      ${inputHTML('login-pass','password','••••••••','Password')}
      <div id="login-err" style="display:none;color:#f87171;font-size:13px;margin-bottom:12px;padding:10px 14px;background:rgba(248,113,113,0.1);border-radius:8px;border:1px solid rgba(248,113,113,0.2)"></div>
-     ${authSubmitBtn('login-btn','Sign In')}`,
+     ${authSubmitBtn('login-btn','Sign In')}
+     <button id="demo-btn" style="width:100%;background:rgba(255,255,255,0.05);color:#fff;padding:14px;border-radius:12px;font-size:14px;font-weight:600;border:1px solid rgba(255,255,255,0.1);cursor:pointer;margin-top:10px;font-family:var(--font);transition:all .2s" onmouseover="this.style.background='rgba(255,255,255,0.1)'" onmouseout="this.style.background='rgba(255,255,255,0.05)'">🎬 Try Demo Account</button>
+     <div id="demo-reveal" style="display:none;margin-top:12px;padding:14px;background:rgba(229,9,20,0.08);border:1px solid rgba(229,9,20,0.2);border-radius:12px;text-align:center">
+       <p style="font-size:12px;color:var(--text3);margin-bottom:8px;text-transform:uppercase;letter-spacing:.08em">Demo Credentials</p>
+       <p style="font-size:14px;font-weight:600;color:#fff;margin-bottom:4px">📧 demo@cinematch.com</p>
+       <p style="font-size:14px;font-weight:600;color:#f87171;margin-bottom:12px">🔑 HireMe</p>
+       <button id="use-demo-btn" style="background:var(--accent);color:#fff;padding:9px 20px;border-radius:8px;font-size:13px;font-weight:700;border:none;cursor:pointer;font-family:var(--font)">Use These Credentials</button>
+     </div>`,
     `Don't have an account? <button id="go-register" style="color:var(--accent);background:none;border:none;cursor:pointer;font-size:13px;font-weight:600">Create one</button>`
   );
-
+$('#demo-btn').addEventListener('click', () => {
+    const reveal = $('#demo-reveal');
+    reveal.style.display = reveal.style.display === 'none' ? 'block' : 'none';
+  });
+  $('#use-demo-btn').addEventListener('click', () => {
+    $('#login-email').value = 'demo@cinematch.com';
+    $('#login-pass').value = 'HireMe';
+    $('#demo-reveal').style.display = 'none';
+  });
+  
   $('#login-btn').addEventListener('click', async () => {
     const btn = $('#login-btn');
     const email = $('#login-email').value.trim();
