@@ -15,10 +15,8 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-def hash_pw(p): return hashlib.sha256(p.encode()).hexdigest()
-
 class RegisterRequest(BaseModel):
-    name: str
+    username: str
     email: str
     password: str
 
@@ -27,74 +25,69 @@ class LoginRequest(BaseModel):
     password: str
 
 class RecommendRequest(BaseModel):
-    user_id: str
     mood: str
+    genres: Optional[list[str]] = []
 
-class WatchedRequest(BaseModel):
-    user_id: str
-    tmdb_id: int
+def hash_password(password: str) -> str:
+    return hashlib.sha256(password.encode()).hexdigest()
 
-@app.get("/")
-def root():
-    return {"status": "CineMatch API running"}
+def get_current_user(authorization: Optional[str]) -> dict:
+    if not authorization or not authorization.startswith("Bearer "):
+        raise HTTPException(status_code=401, detail="Missing or invalid Authorization header")
+    token = authorization.split(" ", 1)[1]
+    user = users_col.find_one({"token": token}, {"_id": 0, "password": 0})
+    if not user:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+    return user
 
 @app.post("/auth/register")
-def register(req: RegisterRequest):
-    if users_col.find_one({"email": req.email}):
-        raise HTTPException(status_code=400, detail="Email already exists")
+def register(body: RegisterRequest):
+    if users_col.find_one({"email": body.email}):
+        raise HTTPException(status_code=400, detail="Email already registered")
     token = str(uuid.uuid4())
-    profile_id = str(uuid.uuid4())
     user = {
-        "name": req.name,
-        "email": req.email,
-        "password": hash_pw(req.password),
+        "username": body.username.strip(),
+        "email": body.email.lower().strip(),
+        "password": hash_password(body.password),
         "token": token,
-        "profiles": [{"profile_id": profile_id, "name": req.name, "avatar": req.name[0].upper(), "gradient": "gradient-1", "is_kids": False}]
     }
     users_col.insert_one(user)
-    user.pop("_id", None)
-    user.pop("password", None)
-    return {"token": token, "user": user}
+    return {
+        "message": "Registration successful",
+        "token": token,
+        "username": user["username"],
+        "email": user["email"],
+    }
 
 @app.post("/auth/login")
-def login(req: LoginRequest):
-    user = users_col.find_one({"email": req.email, "password": hash_pw(req.password)})
-    if not user:
-        raise HTTPException(status_code=404, detail="Not Found")
-    user.pop("_id", None)
-    user.pop("password", None)
-    return {"token": user["token"], "user": user}
+def login(body: LoginRequest):
+    user = users_col.find_one({"email": body.email.lower().strip()})
+    if not user or user["password"] != hash_password(body.password):
+        raise HTTPException(status_code=401, detail="Invalid email or password")
+    new_token = str(uuid.uuid4())
+    users_col.update_one({"email": user["email"]}, {"$set": {"token": new_token}})
+    return {
+        "message": "Login successful",
+        "token": new_token,
+        "username": user["username"],
+        "email": user["email"],
+    }
 
 @app.get("/auth/me")
 def me(authorization: Optional[str] = Header(None)):
-    user = users_col.find_one({"token": authorization})
-    if not user:
-        raise HTTPException(status_code=404, detail="Not Found")
-    user.pop("_id", None)
-    user.pop("password", None)
-    return user
+    user = get_current_user(authorization)
+    return {"username": user["username"], "email": user["email"]}
+
+@app.get("/")
+def root():
+    return {"status": "CineMatch API is running"}
+
+@app.get("/health")
+def health():
+    return {"status": "ok"}
 
 @app.post("/recommend")
-def recommend(req: RecommendRequest):
-    user = users_col.find_one({"user_id": req.user_id})
-    history = user["watch_history"] if user else []
-    mood, results = get_recommendations(req.mood, history, movies_col)
-    return {"detected_mood": mood, "recommendations": results}
-
-@app.post("/watched")
-def mark_watched(req: WatchedRequest):
-    users_col.update_one(
-        {"user_id": req.user_id},
-        {"$addToSet": {"watch_history": req.tmdb_id}},
-        upsert=True
-    )
-    return {"status": "saved"}
-
-@app.get("/movies/search")
-def search(title: str):
-    results = list(movies_col.find(
-        {"title": {"$regex": title, "$options": "i"}}
-    ).limit(5))
-    for r in results:
-        r.pop("_id", None)
-    return {"results": results}
+def recommend(body: RecommendRequest, authorization: Optional[str] = Header(None)):
+    get_current_user(authorization)
+    results = get_recommendations(body.mood, body.genres)
+    return {"recommendations": results}
