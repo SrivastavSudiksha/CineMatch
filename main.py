@@ -121,7 +121,6 @@ const NAV_ICONS = {
 
 const API = 'http://localhost:8000';
 
-// ─── DEMO MODE (localStorage-based auth when backend is offline) ───────────
 let BACKEND_ALIVE = null; // null = unknown, true/false after probe
 
 async function probeBackend() {
@@ -138,7 +137,6 @@ async function probeBackend() {
   return BACKEND_ALIVE;
 }
 
-// ---- Local DB helpers ----
 function lsGet(key) { try { return JSON.parse(localStorage.getItem(key)); } catch { return null; } }
 function lsSet(key, val) { localStorage.setItem(key, JSON.stringify(val)); }
 
@@ -156,7 +154,6 @@ async function demoApiFetch(path, options = {}) {
   const body = options.body ? JSON.parse(options.body) : {};
   const users = demoUsers();
 
-  // POST /auth/register
   if (path === '/auth/register' && options.method === 'POST') {
     const exists = Object.values(users).find(u => u.email === body.email);
     if (exists) throw new Error('Email already registered');
@@ -169,7 +166,6 @@ async function demoApiFetch(path, options = {}) {
     return { token, user: { user_id: userId, name: user.name, email: user.email, profiles: [] } };
   }
 
-  // POST /auth/login
   if (path === '/auth/login' && options.method === 'POST') {
     const user = Object.values(users).find(u => u.email === body.email);
     if (!user || user.password !== body.password) throw new Error('Invalid email or password');
@@ -177,7 +173,6 @@ async function demoApiFetch(path, options = {}) {
     return { token, user: { user_id: user.user_id, name: user.name, email: user.email, profiles: user.profiles } };
   }
 
-  // GET /auth/me
   if (path === '/auth/me') {
     const userId = parseDemoToken(state.token);
     const user = userId && users[userId];
@@ -185,7 +180,6 @@ async function demoApiFetch(path, options = {}) {
     return { user_id: user.user_id, name: user.name, email: user.email, profiles: user.profiles };
   }
 
-  // POST /profiles
   if (path === '/profiles' && options.method === 'POST') {
     const userId = parseDemoToken(state.token);
     const user = users[userId];
@@ -200,7 +194,6 @@ async function demoApiFetch(path, options = {}) {
     return { profile };
   }
 
-  // PUT /profiles/:id
   if (path.startsWith('/profiles/') && options.method === 'PUT') {
     const profileId = path.split('/')[2];
     const userId = parseDemoToken(state.token);
@@ -214,7 +207,6 @@ async function demoApiFetch(path, options = {}) {
     return { status: 'updated' };
   }
 
-  // DELETE /profiles/:id
   if (path.startsWith('/profiles/') && options.method === 'DELETE') {
     const profileId = path.split('/')[2];
     const userId = parseDemoToken(state.token);
@@ -225,7 +217,6 @@ async function demoApiFetch(path, options = {}) {
     return { status: 'deleted' };
   }
 
-  // POST /watched
   if (path === '/watched' && options.method === 'POST') {
     const userId = parseDemoToken(state.token);
     const user = users[userId];
@@ -237,14 +228,12 @@ async function demoApiFetch(path, options = {}) {
     return { status: 'saved' };
   }
 
-  // POST /recommend — use local logic
   if (path === '/recommend' && options.method === 'POST') {
     return { detected_mood: body.mood, recommendations: [] };
   }
 
   throw new Error('Demo: endpoint not supported');
 }
-// ─── END DEMO MODE ───────────────────────────────────────────────────────────
 
 const state = {
   token: localStorage.getItem('cm_token') || null,
@@ -268,13 +257,11 @@ const state = {
 };
 
 async function apiFetch(path, options = {}) {
-  // If token is a demo token, skip real backend entirely
   const isDemoToken = state.token && state.token.startsWith('demo_');
 
   if (!isDemoToken) {
     const alive = await probeBackend();
     if (alive) {
-      // Real backend call
       const headers = { 'Content-Type': 'application/json', ...(options.headers || {}) };
       if (state.token) headers['Authorization'] = `Bearer ${state.token}`;
       try {
@@ -284,7 +271,6 @@ async function apiFetch(path, options = {}) {
         return data;
       } catch (e) {
         if (e.message !== 'Request failed' && !(e instanceof SyntaxError)) {
-          // Network error — fall through to demo
           BACKEND_ALIVE = false;
         } else {
           throw e;
@@ -293,7 +279,6 @@ async function apiFetch(path, options = {}) {
     }
   }
 
-  // Demo mode fallback
   return demoApiFetch(path, options);
 }
 
